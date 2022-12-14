@@ -17,4 +17,6 @@ The `Blockchain` class represents a blockchain, and has the following attributes
 - `difficulty`: the number of zeros that the block's hash must start with in order for the proof-of-work to be considered valid.
 - `chain`: a list of Block objects representing the blocks in the blockchain.
 
-The mine_block function mines a new block by calling the proof_of_work function on the last block in the blockchain, and then appending the newly mined block to the chain. The get_chain function returns the current state of the blockchain in JSON format.
+The `mine_block` function mines a new block by calling the proof_of_work function on the last block in the blockchain, and then appending the newly mined block to the chain. The `get_chain` function returns the current state of the blockchain in JSON format.
+
+Default app: `localhost:5000`
