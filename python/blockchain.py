@@ -22,11 +22,11 @@ class Block:
         data = str(self.index) + str(self.data) + str(self.timestamp) + str(self.previous_hash) + str(self.nonce)
         return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
-    def proof_of_work(self):
+    def proof_of_work(self, difficulty):
         """
         Simple proof-of-work algorithm.
         """
-        while not self.hash.startswith('0' * DIFFICULTY):
+        while not self.hash.startswith('0' * difficulty):
             self.nonce += 1
             self.hash = self.calc_hash()
 
@@ -34,7 +34,7 @@ class Block:
 
 class Blockchain:
     def __init__(self):
-        self.difficulty = 2
+        self.difficulty = DIFFICULTY
         self.chain = [self.create_genesis_block()]
 
     def create_genesis_block(self):
@@ -78,7 +78,7 @@ blockchain = Blockchain()
 def mine_block():
     # get the data we need to create a block
     last_block = blockchain.get_last_block()
-    block = last_block.proof_of_work()
+    block = last_block.proof_of_work(blockchain.difficulty)
 
     if block:
         response = {
