@@ -1,22 +1,19 @@
 
 # Simple proof-of-work blockchain in Python
 
-This code defines a simple blockchain and a proof-of-work algorithm, and exposes two HTTP endpoints for mining blocks and getting the current state of the blockchain.
+This is a simple implementation of a blockchain in Python using Flask. The code defines a Block class to represent a block in the chain, and a Blockchain class to represent the entire chain. The Blockchain class contains several methods to manage the chain, including methods to add new blocks and to validate the proof-of-work for each block.
 
-The `Block` class represents a single block in the blockchain, and has the following attributes:
+To run the code, you need to install Flask and start the Flask development server:
 
-index: the position of the block in the blockchain.
-- `timestamp` : the time at which the block was created.
-- `data` : the data contained in the block.
-- `previous_hash` : the hash of the previous block in the blockchain.
-- `nonce` : a value that is incremented and included in the block's hash until the block's hash meets certain criteria (in this case, it must start with a certain number of zeros).
-- `hash` : the block's hash.
+$ pip install Flask
+$ python app.py
 
-The `Blockchain` class represents a blockchain, and has the following attributes:
+You can then access the blockchain API using HTTP requests. To mine a new block, you can use the /mine endpoint, which accepts a miner_address parameter that specifies the address to which the mining reward should be sent. For example:
 
-- `difficulty`: the number of zeros that the block's hash must start with in order for the proof-of-work to be considered valid.
-- `chain`: a list of Block objects representing the blocks in the blockchain.
+$ curl http://localhost:5000/mine?miner_address=0x12345
 
-The `mine_block` function mines a new block by calling the proof_of_work function on the last block in the blockchain, and then appending the newly mined block to the chain. The `get_chain` function returns the current state of the blockchain in JSON format.
+This will mine a new block and add it to the blockchain. You can view the current state of the chain by accessing the /chain endpoint:
 
-Default app: `localhost:5000`
+$ curl http://localhost:5000/chain
+
+This will return a JSON object that contains the entire blockchain, as well as the current length of the chain.
