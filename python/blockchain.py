@@ -1,4 +1,3 @@
-import hashlib
 import time
 from flask import Flask, jsonify, request
 from block import Block
