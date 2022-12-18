@@ -1,33 +1,16 @@
 import hashlib
 import time
-import json
 from flask import Flask, jsonify, request
+from block import Block
 
 # Define the difficulty for the proof-of-work algorithm
 DIFFICULTY = 4
-
-class Block:
-    def __init__(self, index, timestamp, transaction, proof, nonce, previous_hash):
-        self.index = index
-        self.timestamp = timestamp
-        self.transaction = transaction
-        self.proof = proof
-        self.nonce = nonce
-        self.previous_hash = previous_hash
-
-    def hash(self):
-        """
-        Calculate the hash of this block.
-        """
-        # Convert the block into a string representation.
-        block_string = f"{self.index}:{self.timestamp}:{self.transaction}:{self.proof}:{self.nonce}:{self.previous_hash}"
-        # Calculate the hash of the string representation.
-        return hashlib.sha256(block_string.encode()).hexdigest()
 
 class Blockchain:
     def __init__(self):
         self.difficulty = DIFFICULTY
         self.chain = [self.create_genesis_block()]
+        self.balances = {}
 
     def create_genesis_block(self):
         """
@@ -42,18 +25,48 @@ class Blockchain:
         }
         return Block(
             0,
-            time.time(),
-            [transaction],
-            None,
-            None,
             "0",
+            time.time(),
+            "0",
+            0,
+            [transaction],
         )
 
+    def update_balances(self):
+        """
+        Update the balances dictionary with the transactions in the last block.
+        """
+        last_block = self.get_last_block()
+
+        # Loop through the transactions in the last block.
+        for transaction in last_block.transactions:
+            # Update the sender's balance.
+            if transaction["sender"] in self.balances:
+                self.balances[transaction["sender"]] -= transaction["amount"]
+            else:
+                self.balances[transaction["sender"]] = -transaction["amount"]
+
+            # Update the receiver's balance.
+            if transaction["receiver"] in self.balances:
+                self.balances[transaction["receiver"]] += transaction["amount"]
+            else:
+                self.balances[transaction["receiver"]] = transaction["amount"]
+
     def proof_of_work(self, block):
-        nonce = 0
-        while not self.valid_proof(block, nonce):
-            nonce += 1
-        return nonce
+        """
+        Find a valid proof for the block.
+        """
+        while True:
+            # Calculate the hash of the block.
+            block_hash = block.get_hash()
+            # Check if the hash starts with the required number of zeros.
+            if block_hash.startswith('0' * self.difficulty):
+                # If it does, return the nonce as the valid proof.
+                return block_hash
+            # If the hash does not start with the required number of zeros,
+            # try the next nonce value.
+            block.nonce += 1
+
 
     def get_last_block(self):
         """
@@ -66,66 +79,28 @@ class Blockchain:
         Adds a new block to the blockchain.
         """
         self.chain.append(new_block)
+        self.update_balances()
 
-    def valid_proof(self, block, nonce):
+    
+    def mine(self, miner_address, transaction):
         """
-        Check if the block is valid.
+        Mines a new block and adds it to the blockchain.
         """
-        # Calculate the hash of the block and the nonce.
-        guess = f"{block}:{nonce}".encode()
-        guess_hash = hashlib.sha256(guess).hexdigest()
-        # The proof is valid if the hash starts with two zeroes.
-        return guess_hash.startswith('0' * self.difficulty)
+        last_block = self.get_last_block()
+        
+        # Create a new block using the transaction and the hash of the last block.
+        new_block = Block(
+            last_block.index + 1,
+            last_block.get_hash(),
+            time.time(),
+            0,
+            miner_address,
+            [transaction],
+        )
 
-app = Flask(__name__)
-
-blockchain = Blockchain()
-
-@app.route('/mine', methods=['GET'])
-def mine():
-    # Get the data we need to create a block
-    last_block = blockchain.get_last_block()
-
-    nonce = blockchain.proof_of_work(last_block)
-    previous_hash = str(last_block.hash())
-
-    # Generate the proof using the nonce and the last block's proof
-    proof = hashlib.sha256(f"{last_block}:{nonce}".encode()).hexdigest()
-
-    # Create a new transaction.
-    transaction = {
-        "sender": "0",  # The mining reward is sent by the "0" address.
-        "receiver": request.args.get("miner_address"),
-        "data": "New generated block",
-        "amount": 1,
-    }
-
-    # Create a new block and add it to the blockchain.
-    block = Block(
-        last_block.index + 1,
-        time.time(),
-        [transaction],
-        proof,
-        nonce,
-        previous_hash,
-    )
-    blockchain.add_block(block)
-
-    # Return the response.
-    response = {
-        "message": "Block added to the blockchain.",
-        "block": json.dumps(block, default=lambda o: o.__dict__, sort_keys=True, indent=4),
-    }
-    return jsonify(response), 200
-
-
-@app.route('/chain', methods=['GET'])
-def chain():
-    response = {
-        'chain': json.dumps(blockchain.chain, default=lambda o: o.__dict__, sort_keys=True, indent=4, ensure_ascii=False),
-        'length': len(blockchain.chain)
-    }
-    return jsonify(response), 200
-
-
-app.run(host='0.0.0.0', port=5000)
+        # Find a valid proof for the new block.
+        proof = self.proof_of_work(new_block)
+        if(proof):
+            # Add the new block to the chain.
+            self.add_block(new_block)
+            return new_block
